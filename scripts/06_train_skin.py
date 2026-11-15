@@ -1,10 +1,10 @@
-"""Allena un classificatore di lesioni cutanee (7 classi) su DermaMNIST-224 (derivato da HAM10000).
+"""Train a skin lesion classifier (7 classes) on DermaMNIST-224 (derived from HAM10000).
 
-Pensato per Colab/Kaggle con GPU (T4):
+Designed for Colab/Kaggle with a GPU (T4); also runs on CPU at lower resolution:
     !pip -q install torch torchvision numpy
-    !python 06_train_skin.py --epochs 8
-Output: models/skin_model.pt (pesi + nomi classi), models/skin_metrics.json
-Licenza dati: CC BY-NC 4.0 (solo uso non commerciale).
+    !python scripts/06_train_skin.py --epochs 8
+Output: models/skin_model.pt (weights + class names), models/skin_metrics.json
+Data license: CC BY-NC 4.0 (non-commercial use only).
 """
 import argparse
 import json
@@ -39,14 +39,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=int, default=8)
     ap.add_argument("--bs", type=int, default=64)
-    ap.add_argument("--size", type=int, default=224, help="risoluzione input (128 per CPU)")
+    ap.add_argument("--size", type=int, default=224, help="input resolution (128 for CPU)")
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
 
     f = Path("data/dermamnist_224.npz")
     Path("models").mkdir(exist_ok=True)
     if not f.exists():
-        print("scarico dataset (1 GB)...")
+        print("downloading dataset (1 GB)...")
         urllib.request.urlretrieve(URL, f)
     d = np.load(f)
     train_tf = T.Compose([T.ToPILImage(), T.Resize((a.size, a.size)), T.RandomHorizontalFlip(),
@@ -58,7 +58,7 @@ def main():
     te = DataLoader(DS(d["test_images"], d["test_labels"], eval_tf), a.bs, num_workers=2)
 
     counts = np.bincount(d["train_labels"].reshape(-1), minlength=7)
-    w = torch.tensor((counts.sum() / (7 * counts)) ** 0.5, dtype=torch.float32, device=dev)  # pesi attenuati
+    w = torch.tensor((counts.sum() / (7 * counts)) ** 0.5, dtype=torch.float32, device=dev)  # softened class weights
     m = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT)
     m.classifier[1] = nn.Linear(m.classifier[1].in_features, 7)
     m.to(dev)

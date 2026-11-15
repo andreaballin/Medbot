@@ -1,9 +1,9 @@
-"""Converte le fonti grezze in chunk di testo pulito: data/chunks.jsonl
+"""Convert raw sources into clean text chunks: data/chunks.jsonl
 
-Gestisce: MedlinePlus XML, StatPearls NXML (tar.gz in streaming), PDF in data/raw/textbooks/.
-Uso:
+Handles: MedlinePlus XML, StatPearls NXML (streamed tar.gz), PDFs in data/raw/textbooks/.
+Usage:
     pip install pymupdf
-    python 02_chunk.py [--limit-statpearls 500]
+    python scripts/02_chunk.py [--limit-statpearls 500]
 Chunk: {chunk_id, source, title, text}
 """
 import argparse
@@ -71,7 +71,7 @@ def textbooks():
     try:
         import fitz
     except ImportError:
-        print("pip install pymupdf per i PDF")
+        print("pip install pymupdf to read PDFs")
         return
     for pdf in d.glob("*.pdf"):
         with fitz.open(pdf) as doc:

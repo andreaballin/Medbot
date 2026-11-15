@@ -1,8 +1,8 @@
-"""Databot medico: RAG sulle fonti + LLM locale via Ollama.
+"""Medical databot: RAG over the sources + local LLM via Ollama.
 
     pip install sentence-transformers numpy requests
-    ollama pull qwen3:4b          # poi, dopo il finetuning: ollama create medbot ...
-    python 04_bot.py [--model qwen3:4b] [--k 5]
+    ollama pull qwen3:4b          # then, after fine-tuning: ollama create medbot ...
+    python scripts/04_bot.py [--model qwen3:4b] [--k 5]
 """
 import argparse
 import json
@@ -52,13 +52,13 @@ if __name__ == "__main__":
     ap.add_argument("--k", type=int, default=5)
     a = ap.parse_args()
     ret = Retriever()
-    print("MedBot pronto (educational only, not medical advice). Ctrl+C per uscire.")
+    print("MedBot ready (educational only, not medical advice). Ctrl+C to quit.")
     history = []
     while True:
         q = input("\n> ").strip()
         if not q:
             continue
-        if q.startswith("/img "):  # classificatore cutaneo -> spiegazione RAG
+        if q.startswith("/img "):  # skin classifier -> RAG explanation
             from importlib import import_module
             sk = import_module("07_predict_skin")
             res, ok = sk.predict(q[5:].strip().strip('"'))

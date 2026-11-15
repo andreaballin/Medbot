@@ -1,7 +1,7 @@
-"""Inferenza del classificatore cutaneo (anche su CPU).
+"""Skin classifier inference (CPU is fine).
 
     pip install torch torchvision pillow
-    python 07_predict_skin.py foto.jpg
+    python scripts/07_predict_skin.py photo.jpg
 """
 import sys
 
@@ -10,8 +10,8 @@ import torch.nn as nn
 from PIL import Image
 from torchvision import models, transforms as T
 
-MIN_CONF = 0.50  # sotto questa soglia: "non riconosciuto"
-# termini di ricerca per il RAG (nome classe -> query)
+MIN_CONF = 0.50  # below this threshold: "not recognised"
+# RAG search terms (class name -> query)
 RAG_QUERY = {
     "actinic keratosis / intraepithelial carcinoma": "actinic keratosis",
     "basal cell carcinoma": "basal cell skin cancer",

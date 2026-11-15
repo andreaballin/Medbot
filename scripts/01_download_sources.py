@@ -1,13 +1,13 @@
-"""Scarica fonti mediche pubbliche e gratuite in data/raw/.
+"""Download free public medical sources into data/raw/.
 
-Fonti (tutte libere, nessun pagamento):
-  medlineplus : NIH/NLM, ~1000 voci per pazienti, pubblico dominio (piccolo, veloce)
-  statpearls  : NCBI Bookshelf, ~9000 articoli clinici peer-reviewed, CC BY-NC-ND (~2 GB)
-  textbooks   : metti tu i PDF di libri open (OpenStax, NCBI Bookshelf open) in data/raw/textbooks/
+Sources (all free):
+  medlineplus : NIH/NLM, ~1000 patient-oriented topics, public domain (small, fast)
+  statpearls  : NCBI Bookshelf, ~9000 peer-reviewed clinical articles, CC BY-NC-ND (~2 GB)
+  textbooks   : put open-licensed book PDFs (OpenStax, open NCBI Bookshelf) in data/raw/textbooks/
 
-Uso:
-    python 01_download_sources.py medlineplus
-    python 01_download_sources.py statpearls
+Usage:
+    python scripts/01_download_sources.py medlineplus
+    python scripts/01_download_sources.py statpearls
 """
 import re
 import sys
@@ -34,7 +34,7 @@ def get(url, dest):
 def medlineplus():
     html = urllib.request.urlopen(urllib.request.Request(
         "https://medlineplus.gov/xml.html", headers=UA), timeout=60).read().decode()
-    # link al file topics non compresso piu' recente (mplus_topics_YYYY-MM-DD.xml)
+    # link to the latest uncompressed topics file (mplus_topics_YYYY-MM-DD.xml)
     links = sorted(set(re.findall(r'https://medlineplus\.gov/xml/mplus_topics_\d{4}-\d{2}-\d{2}\.xml', html)))
     get(links[-1], RAW / "medlineplus" / "topics.xml")
 

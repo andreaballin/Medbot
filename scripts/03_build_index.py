@@ -1,7 +1,7 @@
-"""Crea l'indice vettoriale (numpy, nessun DB) da data/chunks.jsonl.
+"""Build the vector index (numpy, no database) from data/chunks.jsonl.
 
     pip install sentence-transformers numpy
-    python 03_build_index.py
+    python scripts/03_build_index.py
 Output: data/index_emb.npy, data/index_meta.jsonl
 """
 import json
@@ -18,4 +18,4 @@ np.save("data/index_emb.npy", emb.astype("float16"))
 with open("data/index_meta.jsonl", "w", encoding="utf-8") as f:
     for c in chunks:
         f.write(json.dumps(c, ensure_ascii=False) + "\n")
-print(len(chunks), "chunk indicizzati")
+print(len(chunks), "chunks indexed")
