@@ -8,7 +8,27 @@ It combines three free components:
 2. **A local LLM** served through [Ollama](https://ollama.com): Qwen3-4B, optionally fine-tuned (Unsloth QLoRA, on free Colab) to answer only from the retrieved context and cite sources like `[1]`.
 3. **A skin lesion classifier** (EfficientNet-B0 on DermaMNIST, 7 classes) whose top prediction is explained through the same pipeline.
 
-## How a question is processed
+## Exam mode (Italian)
+
+The main use is a professor that examines you. The interface and the professor speak **Italian**; the sources stay in English.
+
+1. Build a question bank once: each question is generated from one source passage and stored with a model answer and key points.
+2. In the **Esame** tab pick a topic and press *Nuova domanda*. Answer in your own words.
+3. The professor grades the answer against the passage (`corretta`, `parziale`, `sbagliata`), explains what was missing or wrong, and shows the model answer and the source.
+4. Progress is saved in `data/progress.json`; questions answered badly come back more often.
+
+```bash
+python scripts/10_build_question_bank.py --n 20                    # about one minute per question on CPU, resumable
+python scripts/10_build_question_bank.py --n 10 --topic "Diabetes" # only topics containing the text
+```
+
+API: `GET /exam/topics`, `GET /exam/question?topic=`, `POST /exam/grade`, `GET /exam/progress`.
+
+Grading is done by a small local model: treat the verdict as a study aid, and compare with the model answer shown below it.
+
+## How a free question is processed
+
+The **Ask** tab (English only for now) answers free questions from the sources:
 
 ```
 question -+-> [1a] rule gate            (in parallel)
@@ -39,6 +59,8 @@ The gate uses a **clinical profile**: general questions about dosing, diagnostic
 | `app/gate.py` | Rule gate and semantic gate |
 | `app/retriever.py`, `app/generator.py` | Dense retrieval; Ollama generation and citation check |
 | `app/api.py`, `app/ui.py` | FastAPI service and Gradio chat UI |
+| `app/exam.py` | Exam mode: question bank, grading, progress |
+| `scripts/10_build_question_bank.py` | Generate the Italian question bank |
 | `app/skin.py` | Skin classifier inference |
 | `app/config.py` | All settings, overridable with `MEDBOT_*` environment variables |
 | `scripts/01_download_sources.py` | Download MedlinePlus / StatPearls into `data/raw/` |

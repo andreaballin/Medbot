@@ -16,6 +16,14 @@ Components: staged RAG pipeline served as API + web UI, Qwen3-4B (optionally fin
 - `scripts/`: data preparation and CLI (01-04, 06, 07, 09). Run from the repo root: `python scripts/NN_name.py`.
 - `notebooks/08_finetune_colab.ipynb`, `eval/golden.jsonl`, `tests/`, `data/` and `logs/` (gitignored), `models/` (`*.pt` gitignored).
 
+## Exam mode (app/exam.py) - the main product direction
+A professor of medicine that examines the student, **in Italian**. `scripts/10_build_question_bank.py` builds
+`data/question_bank.jsonl` offline (one Italian question + model answer + key points per English chunk, ~70 s each on CPU).
+At exam time the LLM only grades one answer against one passage (JSON verdict: corretta / parziale / sbagliata).
+Progress in `data/progress.json`; wrong answers are re-asked more often. UI tab "Esame", API under `/exam/*`.
+Planned next: voice in/out (Whisper + browser speech synthesis), clinical sources (StatPearls), Italian free questions
+(needs a multilingual embedding model and a re-index).
+
 ## Pipeline stages (app/pipeline.py)
 rule gate + question embedding in parallel -> semantic gate -> retrieval + scope threshold -> generation -> citation check.
 Decisions: `answered`, `out_of_scope`, `patient_specific`, `emergency`, `invalid`. Only `answered` calls the LLM.
@@ -39,4 +47,4 @@ Decisions: `answered`, `out_of_scope`, `patient_specific`, `emergency`, `invalid
 - Later (phase 3): sentence-level answer verification, study mode (quiz/flashcards), PII masking, feedback button.
 
 ## Conventions
-- Python 3.13 on Windows. Everything in the repo (code, comments, docs, bot output) in English.
+- Python 3.13 on Windows. Code, comments and docs in English. What the student sees in exam mode (UI text, questions, feedback) is in Italian.

@@ -26,11 +26,11 @@ def build_messages(question, hits, history=()):
             {"role": "user", "content": f"Context:\n{ctx}\n\nQuestion: {question}"}]
 
 
-def _post(messages, stream):
+def _post(messages, stream, **extra):
     try:
         r = requests.post(f"{config.OLLAMA_URL}/api/chat", stream=stream, timeout=600,
                           json={"model": config.MODEL, "messages": messages, "stream": stream,
-                                "options": {"temperature": config.TEMPERATURE}})
+                                "options": {"temperature": config.TEMPERATURE}, **extra})
         r.raise_for_status()
         return r
     except requests.RequestException as e:
@@ -51,6 +51,16 @@ def strip_reasoning(text):
 
 def generate(messages):
     return strip_reasoning(_post(messages, stream=False).json()["message"]["content"])
+
+
+def generate_json(messages):
+    """Ask for a JSON object and parse it. Returns None when the model does not produce valid JSON."""
+    text = strip_reasoning(_post(messages, stream=False, format="json").json()["message"]["content"])
+    try:
+        data = json.loads(text[text.index("{"): text.rindex("}") + 1])
+        return data if isinstance(data, dict) else None
+    except ValueError:
+        return None
 
 
 def generate_stream(messages):

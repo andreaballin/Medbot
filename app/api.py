@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
-from . import config, generator, skin
+from . import config, exam, generator, skin
 from .pipeline import Pipeline
 
 _pipeline = None
@@ -95,6 +95,55 @@ def health():
             "thresholds": {"scope_min": config.SCOPE_MIN, "patient_min": config.PATIENT_MIN}}
 
 
+_exam, _exam_mtime = None, None
+
+
+def get_exam():
+    """The exam session; reloaded when the question bank file changes."""
+    global _exam, _exam_mtime
+    with _lock:
+        mtime = exam.BANK_FILE.stat().st_mtime if exam.BANK_FILE.exists() else None
+        if _exam is None or mtime != _exam_mtime:
+            _exam, _exam_mtime = exam.Exam(), mtime
+    return _exam
+
+
+class GradeRequest(BaseModel):
+    question_id: str
+    answer: str
+
+
+@app.get("/exam/topics")
+def exam_topics():
+    return [{"topic": t, "questions": n} for t, n in get_exam().topics()]
+
+
+@app.get("/exam/question")
+def exam_question(topic: str | None = None, exclude: str | None = None):
+    """Next question (in Italian). Questions answered badly before are more likely to come back."""
+    q = get_exam().next_question(topic, exclude)
+    if q is None:
+        raise HTTPException(404, "no questions for this topic: run python scripts/10_build_question_bank.py")
+    return {"question_id": q["id"], "topic": q["topic"], "question": q["question"]}
+
+
+@app.post("/exam/grade")
+def exam_grade(req: GradeRequest):
+    """Grade an answer: verdict (corretta / parziale / sbagliata), explanation, model answer and source."""
+    e = get_exam()
+    if req.question_id not in e.questions:
+        raise HTTPException(404, "unknown question_id")
+    try:
+        return e.grade(req.question_id, req.answer)
+    except generator.LLMUnavailable as err:
+        raise HTTPException(503, str(err))
+
+
+@app.get("/exam/progress")
+def exam_progress():
+    return get_exam().summary()
+
+
 from .ui import mount_ui  # noqa: E402
 
-app = mount_ui(app, get_pipeline)
+app = mount_ui(app, get_pipeline, get_exam)

@@ -44,7 +44,57 @@ def _stream(pipeline, question, history=(), prefix=""):
         yield prefix + f"**The language model is not available.** {e}"
 
 
-def mount_ui(app, get_pipeline, path="/ui"):
+ALL_TOPICS = "Tutti gli argomenti"
+_VERDICT = {"corretta": "Corretta (2/2)", "parziale": "Parziale (1/2)", "sbagliata": "Sbagliata (0/2)"}
+
+
+def format_grade(g):
+    """Italian feedback shown to the student after an answer."""
+    out = [f"### {_VERDICT.get(g['verdict'], 'Non valutata')}", g["feedback"]]
+    if g["missing"]:
+        out.append("**Cosa mancava:**\n" + "\n".join(f"- {m}" for m in g["missing"]))
+    if g["errors"]:
+        out.append("**Errori:**\n" + "\n".join(f"- {m}" for m in g["errors"]))
+    out.append(f"**Risposta attesa:** {g['reference']}")
+    out.append(f"*Fonte: {g['source']}*")
+    return "\n\n".join(out)
+
+
+def format_progress(s):
+    if not s["questions"]:
+        return ("La banca domande è vuota. Generala con "
+                "`python scripts/10_build_question_bank.py --n 20`.")
+    head = f"**Domande provate:** {s['tried']} su {s['questions']}"
+    if s["percent"] is not None:
+        head += f" — **punteggio:** {s['percent']}%"
+    rows = [f"| {t['topic']} | {t['tried']}/{t['questions']} | {t['percent']}% |"
+            for t in s["topics"] if t["tried"]]
+    if rows:
+        head += "\n\n| Argomento | Provate | Punteggio |\n|---|---|---|\n" + "\n".join(rows)
+    return head
+
+
+def mount_ui(app, get_pipeline, get_exam, path="/ui"):
+    def topic_choices():
+        return [ALL_TOPICS] + [t for t, _ in get_exam().topics()]
+
+    def new_question(topic, current):
+        q = get_exam().next_question(None if topic in (None, ALL_TOPICS) else topic, exclude=current)
+        if q is None:
+            return None, "Nessuna domanda disponibile per questo argomento.", "", "", format_progress(get_exam().summary())
+        return q["id"], f"**{q['topic']}**\n\n### {q['question']}", "", "", format_progress(get_exam().summary())
+
+    def submit(qid, answer):
+        if not qid:
+            return "Premi prima **Nuova domanda**.", format_progress(get_exam().summary())
+        try:
+            g = get_exam().grade(qid, answer)
+        except generator.LLMUnavailable as e:
+            return f"**Il modello non è disponibile.** {e}", format_progress(get_exam().summary())
+        except KeyError:
+            return "Questa domanda non è più nella banca. Premi **Nuova domanda**.", format_progress(get_exam().summary())
+        return format_grade(g), format_progress(get_exam().summary())
+
     def chat(message, history):
         hist = [{"role": m["role"], "content": _text(m["content"])} for m in history][-4:]
         yield from _stream(get_pipeline(), message, hist)
@@ -65,6 +115,22 @@ def mount_ui(app, get_pipeline, path="/ui"):
 
     with gr.Blocks(title="MedBot") as demo:
         gr.Markdown("# MedBot\n" + DISCLAIMER)
+        with gr.Tab("Esame"):
+            gr.Markdown("Il professore ti interroga: scegli un argomento, rispondi con parole tue e ricevi la "
+                        "correzione. Le domande sbagliate tornano più spesso. La correzione richiede circa un minuto.")
+            qid = gr.State(None)
+            with gr.Row():
+                topic = gr.Dropdown(choices=[ALL_TOPICS], value=ALL_TOPICS, label="Argomento", scale=3)
+                next_btn = gr.Button("Nuova domanda", variant="primary", scale=1)
+            question = gr.Markdown("Premi **Nuova domanda** per cominciare.")
+            answer = gr.Textbox(label="La tua risposta", lines=4)
+            submit_btn = gr.Button("Consegna")
+            feedback = gr.Markdown()
+            progress = gr.Markdown()
+            next_btn.click(new_question, [topic, qid], [qid, question, answer, feedback, progress])
+            submit_btn.click(submit, [qid, answer], [feedback, progress])
+            demo.load(lambda: (gr.Dropdown(choices=topic_choices(), value=ALL_TOPICS),
+                               format_progress(get_exam().summary())), None, [topic, progress])
         with gr.Tab("Ask"):
             gr.ChatInterface(chat, examples=[
                 "What are the warning signs of a stroke?",
