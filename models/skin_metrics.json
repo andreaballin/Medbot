@@ -1,0 +1,13 @@
+{
+  "test_acc": 0.8463840399002494,
+  "test_balanced_acc": 0.7750173394786495,
+  "recall_per_class": {
+    "actinic keratosis / intraepithelial carcinoma": 0.6060606060606061,
+    "basal cell carcinoma": 0.8543689320388349,
+    "benign keratosis-like lesion": 0.7045454545454546,
+    "dermatofibroma": 0.7391304347826086,
+    "melanoma": 0.6412556053811659,
+    "melanocytic nevus (mole)": 0.9142431021625652,
+    "vascular lesion": 0.9655172413793104
+  }
+}

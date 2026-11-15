@@ -1,0 +1,6 @@
+data/
+models/*.pt
+*.pt
+*.npz
+*.gguf
+__pycache__/
