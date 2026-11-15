@@ -4,3 +4,5 @@ models/*.pt
 *.npz
 *.gguf
 __pycache__/
+logs/
+.pytest_cache/
